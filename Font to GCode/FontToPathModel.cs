@@ -325,6 +325,7 @@ namespace Font_to_GCode
         //|  SW  |  S   |  SE |
         //---------------------
 
+
         private Point NW = new Point(-1, -1);
         private Point N = new Point(0, -1);
         private Point NE = new Point(1, -1);
