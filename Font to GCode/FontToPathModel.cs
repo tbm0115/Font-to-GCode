@@ -309,6 +309,10 @@ namespace Font_to_GCode
       
 
     }
+
+
+
+
     public class DirectionModel
     {
       public enum Direction { NW, N, NE, W, E, SW, S, SE}
@@ -317,13 +321,14 @@ namespace Font_to_GCode
 
       public class CrawlerMatrix
       {
-        //---------------------
-        //|  NW  |  N   |  NE |
-        //---------------------
-        //|  W   |  C   |  E  |
-        //---------------------
-        //|  SW  |  S   |  SE |
-        //---------------------
+        /*
+        ---------------------
+        |  NW  |  N   |  NE |
+        ---------------------
+        |  W   |  C   |  E  |
+        ---------------------
+        |  SW  |  S   |  SE |
+        ---------------------*/
 
 
         private Point NW = new Point(-1, -1);
