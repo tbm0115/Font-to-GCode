@@ -298,26 +298,15 @@ namespace Font_to_GCode
     public AutoEdge(Bitmap bmp)
     {
       this.Image = bmp;
-      
+
     }
 
     public class Crawler
     {
-      public Point Previous { get; set; }
-      public Point Current { get; set; }
-
+      public enum Direction { NW, N, NE, W, E, SW, S, SE, Center }
+      public Dictionary<CrawlerMatrix, Direction> History { get; set; }
+      public CrawlerMatrix Current { get; set; }
       
-
-    }
-
-
-
-
-    public class DirectionModel
-    {
-      public enum Direction { NW, N, NE, W, E, SW, S, SE}
-      public Dictionary<Point, Direction> History { get; set; }
-
 
       public class CrawlerMatrix
       {
@@ -329,47 +318,64 @@ namespace Font_to_GCode
         ---------------------
         |  SW  |  S   |  SE |
         ---------------------*/
-
-
-        private Point NW = new Point(-1, -1);
-        private Point N = new Point(0, -1);
-        private Point NE = new Point(1, -1);
-        private Point W = new Point(-1,0);
-        private Point Center = new Point(0, 0);
-        private Point E = new Point(1, 0);
-        private Point SW = new Point(-1, 1);
-        private Point S = new Point(0, 1);
-        private Point SE = new Point(1, 1);
-
-        public Dictionary<Point, CrawlerPoint> Matrix { get; set; }
-
-        public CrawlerMatrix(Bitmap image, int x, int y)
+        public SortedList<Direction, Point> DirectionGrid
         {
-          this.Matrix = new Dictionary<Point, CrawlerPoint>(9)
+          get
           {
-            {NW, null },
-            {N, null },
-            {NE, null },
-            {W, null },
-            {Center, null },
-            {E, null },
-            {SW, null },
-            {S, null },
-            {SE, null }
-          };
-          
-          if (((x-1) >= 0) && ((x+1) < image.Width) && ((y-1) >= 0) && ((y+1) < image.Height))
-          {
-            foreach (Point item in this.Matrix.Keys)
-            {
-              this.Matrix[item] = new CrawlerPoint(image, x + item.X, y + item.Y);
-            }
+            return (new SortedList<Direction, Point> {
+        { Direction.NW, new Point(-1, -1) },
+        { Direction.N, new Point(0, -1) },
+        { Direction.NE,  new Point(1, -1) },
+        { Direction.W, new Point(-1, 0) },
+        { Direction.Center, new Point(0, 0) },
+        { Direction.E, new Point(1, 0) },
+        { Direction.SW, new Point(-1, 1) },
+        { Direction.S, new Point(0, 1) },
+        { Direction.SE, new Point(1, 1) } });
           }
         }
 
-        public Direction GetDirection(double threshold)
+
+        public Dictionary<Direction, CrawlerPoint> Matrix { get; set; }
+        private CrawlPointModel _model { get; set; }
+        private LastCrawlerPoint _last { get; set; }
+
+        public CrawlerMatrix(Bitmap image, int x, int y)
         {
-          // Update here;  
+          this.Matrix = new Dictionary<Direction, CrawlerPoint>(9)
+          {
+            {Direction.NW, null },
+            {Direction.N, null },
+            {Direction.NE, null },
+            {Direction.W, null },
+            {Direction.Center, null },
+            {Direction.E, null },
+            {Direction.SW, null },
+            {Direction.S, null },
+            {Direction.SE, null }
+          };
+
+          if (((x - 1) >= 0) && ((x + 1) < image.Width) && ((y - 1) >= 0) && ((y + 1) < image.Height))
+          {
+            foreach (Direction dir in this.Matrix.Keys)
+            {
+              this.Matrix[dir] = new CrawlerPoint(image, x + DirectionGrid[dir].X, y + DirectionGrid[dir].Y);
+            }
+          }
+          
+        }
+
+        public Direction Move(double threshold)
+        {
+          // Update here;
+          double curAvg = this.Matrix[Direction.Center].Brightness;
+          if (this.Matrix[last] != null)
+            curAvg = (curAvg + this.Matrix[last].Brightness) / 2;
+
+          foreach (KeyValuePair<Direction,CrawlerPoint> item in this.Matrix)
+          {
+            
+          }
           return Direction.N;
         }
 
@@ -377,6 +383,7 @@ namespace Font_to_GCode
         {
           public Point Point { get; set; }
           public double Brightness { get; set; }
+          private bool _IsNull { get; set; }
 
           public CrawlerPoint(Bitmap image, int x, int y)
           {
@@ -386,9 +393,113 @@ namespace Font_to_GCode
             {
               this.Point = new Point(x, y);
               this.Brightness = image.GetPixel(x, y).GetBrightness();
+              this._IsNull = false;
+            }
+            else
+            {
+              this.Point = new Point(-1, -1);
+              this._IsNull = true;
+            }
+          }
+
+          public bool IsNull()
+          {
+            if (this.Point != null && this.Point.X>=0 && this.Point.Y >= 0)
+            {
+              this._IsNull = false;
+            }
+            return this._IsNull;
+          }
+        }
+
+        public class CrawlPointModel {
+          public SortedList<Direction, int> ScoreMatrix { get; set; }
+
+          public CrawlPointModel(Direction last)
+          {
+            switch (last)
+            {
+              case Direction.NW:
+                this.LoadMatrix(new int[] { 0, 0, 10, 0, 0, 30, 10, 30, 20 });
+                break;
+              case Direction.N:
+                this.LoadMatrix(new int[] { 0, 0, 0, 0, 0, 0, 25, 50, 25 });
+                break;
+              case Direction.NE:
+                this.LoadMatrix(new int[] { 10, 0, 0, 30, 0, 0, 20, 30, 10 });
+                break;
+              case Direction.W:
+                this.LoadMatrix(new int[] { 0, 0, 25, 0, 0, 50, 0, 0, 25 });
+                break;
+              case Direction.E:
+                this.LoadMatrix(new int[] { 25, 0, 0, 50, 0, 0, 25, 0, 0 });
+                break;
+              case Direction.SW:
+                this.LoadMatrix(new int[] { 10, 30, 20, 0, 0, 30, 0, 0, 10 });
+                break;
+              case Direction.S:
+                this.LoadMatrix(new int[] { 25, 50, 25, 0, 0, 0, 0, 0, 0 });
+                break;
+              case Direction.SE:
+                this.LoadMatrix(new int[] { 20, 30, 10, 30, 0, 0, 10, 0, 0 });
+                break;
+              case Direction.Center:
+                this.LoadMatrix(new int[] { 12, 12, 12, 0, 12, 12, 12, 12, 12 });
+                break;
+              default:
+                this.LoadMatrix(new int[] { 12, 12, 12, 0, 12, 12, 12, 12, 12 });
+                break;
+            }
+          }
+
+          private void LoadMatrix(int[] arr)
+          {
+            this.ScoreMatrix = new SortedList<Direction, int>();
+            if (arr.Length == 9)
+            {
+              this.ScoreMatrix.Add(Direction.NW, arr[0]);
+              this.ScoreMatrix.Add(Direction.N, arr[1]);
+              this.ScoreMatrix.Add(Direction.NE, arr[2]);
+              this.ScoreMatrix.Add(Direction.W, arr[3]);
+              this.ScoreMatrix.Add(Direction.Center, arr[4]);
+              this.ScoreMatrix.Add(Direction.E, arr[5]);
+              this.ScoreMatrix.Add(Direction.SW, arr[6]);
+              this.ScoreMatrix.Add(Direction.S, arr[7]);
+              this.ScoreMatrix.Add(Direction.SE, arr[8]);
             }else
             {
-              throw new IndexOutOfRangeException("X or Y positions are outside the bounds of the image provided!");
+              throw new Exception("Size not valid. Array should be a length of 9 to match matrix model");
+            }
+          }
+        }
+
+        public struct LastCrawlerPoint
+        {
+          public CrawlerPoint Point { get; set; }
+          public Direction MotionDirection { get; set; }
+
+          public Direction ReverseDirection()
+          {
+            switch (this.MotionDirection)
+            {
+              case Direction.NW:
+                return Direction.SE;
+              case Direction.N:
+                return Direction.S;
+              case Direction.NE:
+                return Direction.SW;
+              case Direction.W:
+                return Direction.E;
+              case Direction.E:
+                return Direction.W;
+              case Direction.SW:
+                return Direction.NE;
+              case Direction.S:
+                return Direction.N;
+              case Direction.SE:
+                return Direction.NW;
+              default:
+                return Direction.Center;
             }
           }
         }
