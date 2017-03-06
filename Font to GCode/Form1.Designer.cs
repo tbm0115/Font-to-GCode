@@ -159,6 +159,7 @@
       this.mnuCharacters.Name = "mnuCharacters";
       this.mnuCharacters.Size = new System.Drawing.Size(222, 26);
       this.mnuCharacters.Text = "Configure Characters";
+      this.mnuCharacters.Click += new System.EventHandler(this.mnuCharacters_Click);
       // 
       // setHeightinchToolStripMenuItem
       // 

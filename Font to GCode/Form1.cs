@@ -170,12 +170,23 @@ namespace Font_to_GCode
       Cursor = Cursors.WaitCursor;
       SaveFileDialog sv = (SaveFileDialog)sender;
       var strOut = new StringBuilder();
+      int idx = 1;
+      var strHead = new StringBuilder();
+      strHead.AppendLine("IF[#1NE0]GOTO100 (DEPTH SET)");
+      strHead.AppendLine("#1 = " + Convert.ToDouble(txtActualDepth.Text).ToString() + " (SET DEFAULT DEPTH)");
+      strHead.AppendLine("N100 (SKIP DEPTH SET TARGET)");
       foreach (TreeNode item in trvCharacters.Nodes[0].Nodes)
       {
+        strHead.AppendLine("(" + ((int)item.Text[0]).ToString() + " = " + item.Text + ")");
+        strOut.AppendLine("N" + (100 + idx).ToString() + " (BEGIN CHARACTER: " + item.Text + ")");
+        strOut.AppendLine("IF[#2NE" + ((int)item.Text[0]).ToString() + "]GOTO" + (200 + idx).ToString() + " (SKIP CHARACTER)");
         trvCharacters.SelectedNode = item;
         trvCharacters_AfterSelect(trvCharacters, null);
         strOut.AppendLine(CharacterToGCode((CharacterPath)trvCharacters.SelectedNode.Tag));
+        strOut.AppendLine("N" + (200 + idx).ToString() + " (END CHARACTER: " + item.Text + ")");
+        idx += 1;
       }
+      strOut.Insert(0, strHead);
 
       // Save file out
       System.IO.File.WriteAllText(sv.FileName, strOut.ToString());
@@ -232,6 +243,17 @@ namespace Font_to_GCode
         statStatus.Text = "String cannot be empty!";
       }
       Cursor = Cursors.Default;
+    }
+
+    private void mnuCharacters_Click(object sender, EventArgs e)
+    {
+      Settings_Characters swin = new Settings_Characters();
+      if (swin.ShowDialog() == DialogResult.OK)
+      {
+        mnuFontFamilies_SelectedIndexChanged(mnuFontFamilies, null);
+        swin.Close();
+        swin.Dispose();
+      }
     }
   }
 }
