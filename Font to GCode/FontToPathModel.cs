@@ -334,7 +334,35 @@ namespace Font_to_GCode
           cur = tmp;
         }
         //pts.Add(new Point(0 - cur.X, ImageSize.Height - cur.Y));
-        return pts.ToArray();
+        return CleanPointPath_Incremental(pts.ToArray());
+      }
+      private Point[] CleanPointPath_Incremental(Point[] pts)
+      {
+        List<Point> nwpts = new List<Point>();
+        Point last;
+        last = pts[0];
+        int conX = last.X;
+        int conY = last.Y;
+        for (int i = 1; i < pts.Length; i++)
+        {
+          if (pts[i].Equals(last))
+          {
+            conX += pts[i].X;
+            conY += pts[i].Y;
+          }else
+          {
+            last.X = conX;
+            last.Y = conY;
+            nwpts.Add(last);
+            last = pts[i];
+            conX = last.X;
+            conY = last.Y;
+          }
+        }
+        last.X = conX;
+        last.Y = conY;
+        nwpts.Add(last);
+        return nwpts.ToArray();
       }
 
       public class CrawlPointModel

@@ -35,19 +35,26 @@ namespace Font_to_GCode
 
     private void mnuFontFamilies_SelectedIndexChanged(object sender, EventArgs e)
     {
-      statFontFile.Text = mnuFontFamilies.SelectedItem.ToString();
-      string[] strArr = new string[Properties.Settings.Default.CharacterList.Count];
-      Properties.Settings.Default.CharacterList.CopyTo(strArr, 0);
-      Project = new FontToPathModel(statFontFile.Text, strArr);
-
-      // Clear TreeView
-      trvCharacters.Nodes.Clear();
-      TreeNode tRoot = trvCharacters.Nodes.Add("Characters");
-      foreach (CharacterPath item in Project.CharacterLibrary)
+      try
       {
-        tRoot.Nodes.Add(item.Character).Tag = item;
+        statFontFile.Text = mnuFontFamilies.SelectedItem.ToString();
+        string[] strArr = new string[Properties.Settings.Default.CharacterList.Count];
+        Properties.Settings.Default.CharacterList.CopyTo(strArr, 0);
+        Project = new FontToPathModel(statFontFile.Text, strArr);
+        // Clear TreeView
+        trvCharacters.Nodes.Clear();
+        TreeNode tRoot = trvCharacters.Nodes.Add("Characters");
+        foreach (CharacterPath item in Project.CharacterLibrary)
+        {
+          tRoot.Nodes.Add(item.Character).Tag = item;
+        }
+        trvCharacters.ExpandAll();
       }
-      trvCharacters.ExpandAll();
+      catch(Exception ex)
+      {
+        MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
+
     }
 
 
@@ -66,12 +73,14 @@ namespace Font_to_GCode
 
     private void CharacterPath_Updated(CharacterPath cp)
     {
+      Cursor = Cursors.WaitCursor;
       //picCharacter.Image = cp.Draw( true);
       picCharacter.Image = cp.Draw(true);
       if (cp.EdgeDetector != null)
       {
         statPointCount.Text = cp.EdgeDetector.EdgeCrawler.Count().ToString() + " Paths";
       }
+      Cursor = Cursors.Default;
     }
 
     private void trvCharacters_AfterSelect(object sender, TreeViewEventArgs e)
@@ -120,20 +129,29 @@ namespace Font_to_GCode
 
     private void mnuSaveCharacterPath_Click(object sender, EventArgs e)
     {
-      SaveFileDialog sv = new SaveFileDialog();
-      sv.CheckPathExists = true;
-      sv.OverwritePrompt = true;
-      sv.FileOk += Sv_FileOk_Character;
-      sv.Filter = "EIA (*.eia)|.eia|G-Code (*.gcode)|*.gcode";
-      sv.ShowDialog();
+      if (trvCharacters.SelectedNode != null)
+      {
+        SaveFileDialog sv = new SaveFileDialog();
+        sv.CheckPathExists = true;
+        sv.OverwritePrompt = true;
+        sv.FileOk += Sv_FileOk_Character;
+        sv.FileName = mnuFontFamilies.SelectedItem.ToString() + "_" + trvCharacters.SelectedNode.Text;
+        sv.Filter = "EIA (*.eia)|.eia|G-Code (*.gcode)|*.gcode";
+        sv.ShowDialog();
+      }else
+      {
+        statStatus.Text = "Must select a character from the list!";
+      }
     }
     private void Sv_FileOk_Character(object sender, CancelEventArgs e)
     {
+      Cursor = Cursors.WaitCursor;
       SaveFileDialog sv = (SaveFileDialog)sender;
       
       // Save file out
       System.IO.File.WriteAllText(sv.FileName, CharacterToGCode((CharacterPath)trvCharacters.SelectedNode.Tag));
       statStatus.Text = "Saved!";
+      Cursor = Cursors.Default;
     }
 
     private void mnuSaveAllCharacterPaths_Click(object sender, EventArgs e)
@@ -142,12 +160,14 @@ namespace Font_to_GCode
       sv.CheckPathExists = true;
       sv.OverwritePrompt = true;
       sv.FileOk += Sv_FileOk_AllCharacters; ;
+      sv.FileName = mnuFontFamilies.SelectedItem.ToString();
       sv.Filter = "EIA (*.eia)|.eia|G-Code (*.gcode)|*.gcode";
       sv.ShowDialog();
     }
 
     private void Sv_FileOk_AllCharacters(object sender, CancelEventArgs e)
     {
+      Cursor = Cursors.WaitCursor;
       SaveFileDialog sv = (SaveFileDialog)sender;
       var strOut = new StringBuilder();
       foreach (TreeNode item in trvCharacters.Nodes[0].Nodes)
@@ -160,10 +180,12 @@ namespace Font_to_GCode
       // Save file out
       System.IO.File.WriteAllText(sv.FileName, strOut.ToString());
       statStatus.Text = "Saved!";
+      Cursor = Cursors.Default;
     }
     
     private void textbox_KeyPress(object sender, KeyPressEventArgs e)
     {
+      ToolStripTextBox txt = (ToolStripTextBox)sender;
       if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) &&
          (e.KeyChar != '.'))
       {
@@ -171,7 +193,7 @@ namespace Font_to_GCode
       }
 
       // only allow one decimal point
-      if ((e.KeyChar == '.') && ((sender as TextBox).Text.IndexOf('.') > -1))
+      if ((e.KeyChar == '.') && (txt.Text.IndexOf('.') > -1))
       {
         e.Handled = true;
       }
@@ -189,6 +211,7 @@ namespace Font_to_GCode
 
     private void Sv_FileOk_InputText(object sender, CancelEventArgs e)
     {
+      Cursor = Cursors.WaitCursor;
       SaveFileDialog sv = (SaveFileDialog)sender;
       string input = Microsoft.VisualBasic.Interaction.InputBox("Text To G-Code", "Enter text to convert to incremental G-Code:");
       if (!String.IsNullOrEmpty(input))
@@ -208,6 +231,7 @@ namespace Font_to_GCode
       {
         statStatus.Text = "String cannot be empty!";
       }
+      Cursor = Cursors.Default;
     }
   }
 }
