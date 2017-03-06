@@ -24,9 +24,9 @@ namespace Font_to_GCode
     private List<CharacterPath> _charLib { get; set; }
 
 
-    public FontToPathModel(string fontFile, string[] characterList)
+    public FontToPathModel(string fontFamily, string[] characterList)
     {
-      this.FontFamily = fontFile;
+      this.FontFamily = fontFamily;
       this.Font = new Font(FontFamily, Properties.Settings.Default.FontSize);
       this.Characters = characterList;
       this._charLib = new List<CharacterPath>();
@@ -38,15 +38,15 @@ namespace Font_to_GCode
 
     public CharacterPath Add(CharacterPath cp)
     {
-      if (!this.Contains(cp.Character))
-      {
-        this._charLib.Add(cp);
-        return _charLib[_charLib.Count - 1];
-      }
-      else
-      {
-        throw new DuplicateWaitObjectException();
-      }
+      this._charLib.Add(cp);
+      return _charLib[_charLib.Count - 1];
+      //if (!this.Contains(cp.Character))
+      //{
+      //}
+      //else
+      //{
+      //  throw new DuplicateWaitObjectException();
+      //}
     }
     public CharacterPath Add(string character, Font font)
     {
@@ -100,213 +100,365 @@ namespace Font_to_GCode
     public string Character { get; set; }
     public Font Font { get; set; }
     public Bitmap Image { get; set; }
-    public IEnumerable<MotionPoint> MotionPath
-    {
-      get
-      {
-        return this._motionPath.ToArray();
-      }
-    }
-    public IEnumerable<ImagePoint> ImagePoints
-    {
-      get
-      {
-        return this._imagePoints.ToArray();
-      }
-    }
-
-    private List<MotionPoint> _motionPath { get; set; }
-    private List<ImagePoint> _imagePoints { get; set; }
+    public AutoEdge EdgeDetector { get; set; }
 
     public CharacterPath(string Character, Font font)
     {
       this.Character = Character;
       this.Font = font;
-      this._imagePoints = new List<ImagePoint>();
-      this._motionPath = new List<MotionPoint>();
       this.Draw();
-    }
-
-    public ImagePoint Add(ImagePoint pt)
-    {
-      if (!this.Contains(pt))
-      {
-        this._imagePoints.Add(pt);
-        return this._imagePoints[this._imagePoints.Count - 1];
-      }
-      else
-      {
-        throw new DuplicateWaitObjectException();
-      }
-    }
-    public ImagePoint Add(double x, double y)
-    {
-      return this.Add(new ImagePoint(x, y));
-    }
-    public ImagePoint Add(int x, int y, Size controlSize)
-    {
-      return this.Add(new ImagePoint(x, y, controlSize));
-    }
-
-    public int IndexOf(double x, double y)
-    {
-      for (int i = 0; i < this._imagePoints.Count; i++)
-      {
-        if (x == this._imagePoints[i].PercentX && y == this._imagePoints[i].PercentY)
-        {
-          return i;
-        }
-      }
-      return -1;
-    }
-    public int IndexOf(ImagePoint pt)
-    {
-      return this.IndexOf(pt.PercentX, pt.PercentY);
-    }
-    public bool Contains(ImagePoint pt)
-    {
-      return this.Contains(pt.PercentX, pt.PercentY);
-    }
-    public bool Contains(double x, double y)
-    {
-      return this.IndexOf(x, y) >= 0;
     }
 
     public Bitmap Draw(bool includePoints = false)
     {
       if (this.Image != null)
         this.Image.Dispose();
-      this.Image = new Bitmap(Properties.Settings.Default.FontSize * 2, Properties.Settings.Default.FontSize * 2, PixelFormat.Format32bppPArgb);
+      SizeF sz = GetImageSize();
+      this.Image = new Bitmap((int)sz.Width, (int)sz.Height);
+      //this.Image = new Bitmap(Properties.Settings.Default.FontSize * 2, Properties.Settings.Default.FontSize * 2, PixelFormat.Format32bppPArgb);
       using (Graphics g = Graphics.FromImage(this.Image))
       {
         g.Clear(Color.White);
-        g.DrawString(Character, this.Font, Brushes.Black, 0, 0);
-        if (includePoints && this._imagePoints != null && this._imagePoints.Count > 0)
-        {
-          ImagePoint cur = this._imagePoints[0];
-          cur.DrawPoint(g, this.Image.Size);
-          if (this._imagePoints.Count > 1)
-          {
-            for (int i = 1; i < this._imagePoints.Count; i++)
-            {
-              ImagePoint thisPt = this._imagePoints[i];
-              thisPt.DrawPoint(g, this.Image.Size);
-              DrawLine(cur, thisPt, g, this.Image.Size);
-              cur = thisPt;
-            }
-          }
-        }
+        g.DrawString(this.Character, this.Font, Brushes.Black, 0, 0);
+      }
+      if (includePoints)
+      {
+        this.EdgeDetector = new AutoEdge(this.Image);
+        this.Image = this.EdgeDetector.Image;
       }
       return this.Image;
     }
 
-    public void DrawLine(ImagePoint pt1, ImagePoint pt2, Graphics g, Size imageSize)
+    private SizeF GetImageSize()
     {
-      var x1 = (int)(pt1.PercentX * imageSize.Width);
-      var y1 = (int)(pt1.PercentY * imageSize.Height);
-      var x2 = (int)(pt2.PercentX * imageSize.Width);
-      var y2 = (int)(pt2.PercentY * imageSize.Height);
-      g.DrawLine(new Pen(Color.YellowGreen, 2), new Point(x1, y1), new Point(x2, y2));
+      SizeF sz;
+      var bmp = new Bitmap(100, 100);
+      using (Graphics g = Graphics.FromImage(bmp))
+      {
+        sz = g.MeasureString(this.Character, this.Font);
+      }
+      return sz;
     }
+    
+    public Point[][] GetPaths()
+    {
+      List<Point[]> ptPaths = new List<Point[]>();
+      foreach (AutoEdge.Crawler item in this.EdgeDetector.EdgeCrawler)
+      {
+        ptPaths.Add(item.GetPointPath());
+      }
+      return ptPaths.ToArray();
+    }
+    public Point[][] GetIncrementalPaths()
+    {
+      List<Point[]> ptPaths = new List<Point[]>();
+      foreach (AutoEdge.Crawler item in this.EdgeDetector.EdgeCrawler)
+      {
+        ptPaths.Add(item.GetPointPath_Incremental(this.Image.Size));
+      }
+      return ptPaths.ToArray();
+    }
+    //public Bitmap Draw(bool includePoints = false)
+    //{
+    //  if (this.Image != null)
+    //    this.Image.Dispose();
+    //  this.Image = new Bitmap(Properties.Settings.Default.FontSize * 2, Properties.Settings.Default.FontSize * 2, PixelFormat.Format32bppPArgb);
+    //  using (Graphics g = Graphics.FromImage(this.Image))
+    //  {
+    //    g.Clear(Color.White);
+    //    g.DrawString(Character, this.Font, Brushes.Black, 0, 0);
+    //    if (includePoints && this._imagePoints != null && this._imagePoints.Count > 0)
+    //    {
+    //      ImagePoint cur = this._imagePoints[0];
+    //      cur.DrawPoint(g, this.Image.Size);
+    //      if (this._imagePoints.Count > 1)
+    //      {
+    //        for (int i = 1; i < this._imagePoints.Count; i++)
+    //        {
+    //          ImagePoint thisPt = this._imagePoints[i];
+    //          thisPt.DrawPoint(g, this.Image.Size);
+    //          DrawLine(cur, thisPt, g, this.Image.Size);
+    //          cur = thisPt;
+    //        }
+    //      }
+    //    }
+    //  }
+    //  return this.Image;
+    //}
 
-  }
+    //public void DrawLine(ImagePoint pt1, ImagePoint pt2, Graphics g, Size imageSize)
+    //{
+    //  var x1 = (int)(pt1.PercentX * imageSize.Width);
+    //  var y1 = (int)(pt1.PercentY * imageSize.Height);
+    //  var x2 = (int)(pt2.PercentX * imageSize.Width);
+    //  var y2 = (int)(pt2.PercentY * imageSize.Height);
+    //  g.DrawLine(new Pen(Color.YellowGreen, 2), new Point(x1, y1), new Point(x2, y2));
+    //}
 
-  public class MotionPoint
-  {
-    public IEnumerable<AxisPoint> AxisPoints { get; set; }
-    private List<AxisPoint> _axisPoints;
-
-    public MotionPoint()
-    {
-      _axisPoints = new List<AxisPoint>();
-    }
-    public MotionPoint(AxisPoint[] axisPoints) : base()
-    {
-      _axisPoints.AddRange(axisPoints);
-    }
-
-  }
-  public class AxisPoint
-  {
-    public string Name { get; set; }
-    public double Value { get; set; }
-
-    public AxisPoint()
-    {
-      this.Name = "";
-      this.Value = 0;
-    }
-    public AxisPoint(string Name, double Value) : base()
-    {
-      this.Name = Name;
-      this.Value = Value;
-    }
-
-    public static AxisPoint CreateAPoint(string name, double value)
-    {
-      return new AxisPoint(name, value);
-    }
-  }
-  public class ImagePoint
-  {
-    public double PercentX { get; set; }
-    public double PercentY { get; set; }
-
-    public override string ToString()
-    {
-      return "{X: " + PercentX.ToString() + ", Y: " + PercentY.ToString() + "}";
-    }
-
-    public ImagePoint()
-    {
-      this.PercentX = 0;
-      this.PercentY = 0;
-    }
-    public ImagePoint(double x, double y) : base()
-    {
-      this.PercentX = x;
-      this.PercentY = y;
-    }
-    public ImagePoint(int x, int y, Size controlSize) : base()
-    {
-      this.PercentX = (double)x / (double)controlSize.Width;
-      this.PercentY = (double)y / (double)controlSize.Height;
-    }
-
-    public MotionPoint ConvertToMotionPoint(string name, Rectangle machineCharacterBounds, Rectangle imageSize)
-    {
-      double macX = (double)(this.PercentX * machineCharacterBounds.Width);
-      double macY = (double)(this.PercentY * machineCharacterBounds.Height);
-
-      return new MotionPoint(new AxisPoint[] { AxisPoint.CreateAPoint("X", macX), AxisPoint.CreateAPoint("Y", macY) });
-    }
-
-  }
-  public static class FontToPathMethods
-  {
-    public static void DrawPoint(this ImagePoint pt, Graphics g, Size imageSize)
-    {
-      int x = (int)(pt.PercentX * imageSize.Width);
-      int y = (int)(pt.PercentY * imageSize.Height);
-      g.DrawEllipse(new Pen(Color.LightBlue, 2), new Rectangle(x - 5, y - 5, 10, 10));
-    }
   }
 
   public class AutoEdge
   {
     public Bitmap Image { get; set; }
+    public List<Crawler> EdgeCrawler { get; set; }
     public AutoEdge(Bitmap bmp)
     {
+      this.EdgeCrawler = new List<Crawler>();
       this.Image = bmp;
-
+      // Find first pixel;
+      bool foundPix = false;
+      int x = 0;
+      int y = 0;
+      for (int i = 0; i < this.Image.Height; i++)
+      {
+        y = i;
+        for (int j = 0; j < this.Image.Width; j++)
+        {
+          if (j > 0 && this.Image.GetPixel(j, i).GetBrightness() <= 0.5 && this.Image.GetPixel(j - 1, i).GetBrightness() >= 0.5)
+          {
+            x = j;
+            if (!ContainedInPath(x, y))
+            {
+              this.EdgeCrawler.Add(new Crawler(bmp, x, y));
+              do
+              {
+                //Console.WriteLine(this.EdgeCrawler.Current.ToString());
+              } while (this.EdgeCrawler[this.EdgeCrawler.Count - 1].Move() != Crawler.Direction.Center);
+            }else
+            {
+              //Console.WriteLine("Contained in Path already! X=" + x.ToString() + ", Y=" + y.ToString());
+            }
+          }
+        }
+      }
+      List<Point> pts = new List<Point>();
+      foreach (Crawler item in this.EdgeCrawler)
+      {
+        pts.AddRange(item.GetPointPath());
+      }
+      if (pts.Count> 0)
+      {
+        using (Graphics g = Graphics.FromImage(bmp))
+        {
+          g.DrawLines(new Pen(Color.ForestGreen, 2), pts.ToArray());// this.EdgeCrawler.GetPointPath());
+        }
+      }
     }
-
+    private bool ContainedInPath(int x, int y)
+    {
+      Point tmp = new Point(x, y);
+      foreach (Crawler item in this.EdgeCrawler)
+      {
+        Point[] pts = item.GetPointPath();
+        if (pts.Contains(tmp)){
+          return true;
+        }
+      }
+      return false;
+    }
+    
     public class Crawler
     {
+      private Bitmap _bmp { get; set; }
       public enum Direction { NW, N, NE, W, E, SW, S, SE, Center }
       public Dictionary<CrawlerMatrix, Direction> History { get; set; }
       public CrawlerMatrix Current { get; set; }
-      
+
+      public Crawler(Bitmap bmp, int startX =0, int startY=0)
+      {
+        this._bmp = bmp;
+        this.Current = new CrawlerMatrix(this._bmp, startX, startY);
+        this.History = new Dictionary<CrawlerMatrix, Direction>();
+      }
+
+      public Direction Move()
+      {
+        CrawlPointModel model;
+        if (this.History.Count > 0)
+        {
+          model = new CrawlPointModel(Reverse(this.History.Last().Value));
+        }else
+        {
+          model = new CrawlPointModel(Direction.Center);
+        }
+        CrawlerMatrix.CrawlerPoint[] hist = this.History.Select(item => item.Key.Matrix[Direction.Center]).ToArray();
+        Direction nextDir = model.GetHighestScore(this.Current, hist);
+        this.History.Add(this.Current, nextDir);
+        this.Current = new CrawlerMatrix(this._bmp, this.Current.Matrix[nextDir].Point.X, this.Current.Matrix[nextDir].Point.Y);
+        return nextDir;
+      }
+
+      public Direction Reverse(Direction dir)
+      {
+        switch (dir)
+        {
+          case Direction.NW:
+            return Direction.SE;
+          case Direction.N:
+            return Direction.S;
+          case Direction.NE:
+            return Direction.SW;
+          case Direction.W:
+            return Direction.E;
+          case Direction.E:
+            return Direction.W;
+          case Direction.SW:
+            return Direction.NE;
+          case Direction.S:
+            return Direction.N;
+          case Direction.SE:
+            return Direction.NW;
+          default:
+            return Direction.Center;
+        }
+      }
+
+      public Point[] GetPointPath()
+      {
+        List<Point> pts = new List<Point>();
+        foreach (CrawlerMatrix item in this.History.Keys)
+        {
+          pts.Add(item.Matrix[Direction.Center].Point);
+        }
+        return pts.ToArray();
+      }
+      public Point[] GetPointPath_Incremental(Size ImageSize)
+      {
+        List<Point> pts = new List<Point>();
+        Point[] regPts = GetPointPath();
+        Point cur = new Point(0,ImageSize.Height);
+        for (int i = 0; i < regPts.Length; i++)
+        {
+          Point tmp = regPts[i];
+          pts.Add(new Point(tmp.X - cur.X, (tmp.Y - cur.Y)*-1));
+          cur = tmp;
+        }
+        //pts.Add(new Point(0 - cur.X, ImageSize.Height - cur.Y));
+        return pts.ToArray();
+      }
+
+      public class CrawlPointModel
+      {
+        public SortedList<Direction, int> ScoreMatrix { get; set; }
+        private Direction _last { get; set; }
+        public CrawlPointModel(Direction last)
+        {
+          this._last = last;
+          switch (this._last)
+          {
+            case Direction.NW:
+              this.LoadMatrix(new int[] { 0, 0, 10, 0, 0, 30, 10, 30, 20 });
+              break;
+            case Direction.N:
+              this.LoadMatrix(new int[] { 0, 0, 0, 0, 0, 0, 25, 50, 25 });
+              break;
+            case Direction.NE:
+              this.LoadMatrix(new int[] { 10, 0, 0, 30, 0, 0, 20, 30, 10 });
+              break;
+            case Direction.W:
+              this.LoadMatrix(new int[] { 0, 0, 25, 0, 0, 50, 0, 0, 25 });
+              break;
+            case Direction.E:
+              this.LoadMatrix(new int[] { 25, 0, 0, 50, 0, 0, 25, 0, 0 });
+              break;
+            case Direction.SW:
+              this.LoadMatrix(new int[] { 10, 30, 20, 0, 0, 30, 0, 0, 10 });
+              break;
+            case Direction.S:
+              this.LoadMatrix(new int[] { 25, 50, 25, 0, 0, 0, 0, 0, 0 });
+              break;
+            case Direction.SE:
+              this.LoadMatrix(new int[] { 20, 30, 10, 30, 0, 0, 10, 0, 0 });
+              break;
+            case Direction.Center:
+              this.LoadMatrix(new int[] { 12, 12, 12, 12, 0, 12, 12, 12, 12 });
+              break;
+            default:
+              this.LoadMatrix(new int[] { 12, 12, 12, 12, 0, 12, 12, 12, 12 });
+              break;
+          }
+        }
+
+        public Direction GetHighestScore(CrawlerMatrix matrix,CrawlerMatrix.CrawlerPoint[] history)
+        {
+          Direction curDir= Direction.Center;
+          double curScore = -1;
+          foreach (KeyValuePair<Direction,int> item in this.ScoreMatrix)
+          {
+            if (matrix.Matrix[item.Key].IsNull() == false)
+            {
+              if (matrix.Matrix[item.Key].Brightness == 0)
+              {
+                // Get adjacent cells to check for open space;
+                Direction[] dirs = GetAdjacent(item.Key);
+                foreach (Direction dir in dirs)
+                {
+                  if (matrix.Matrix[dir].Brightness == 1)
+                  {
+                    if (curScore < item.Value && !history.Contains(matrix.Matrix[item.Key]) && item.Key != this._last)
+                    {
+                      curScore = item.Value;
+                      curDir = item.Key;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          if (curDir == Direction.Center)
+          {
+            curDir = Direction.Center;
+          }
+          return curDir;
+        }
+
+        public Direction[] GetAdjacent(Direction dir)
+        {
+          switch (dir)
+          {
+            case Direction.NW:
+              return new Direction[] { Direction.N, Direction.W };
+            case Direction.N:
+              return new Direction[] { Direction.NW, Direction.NE };
+            case Direction.NE:
+              return new Direction[] { Direction.N, Direction.E };
+            case Direction.W:
+              return new Direction[] { Direction.NW, Direction.SW };
+            case Direction.E:
+              return new Direction[] { Direction.NE, Direction.SE };
+            case Direction.SW:
+              return new Direction[] { Direction.S, Direction.W };
+            case Direction.S:
+              return new Direction[] { Direction.SW, Direction.SE };
+            case Direction.SE:
+              return new Direction[] { Direction.S, Direction.E };
+            default:
+              return new Direction[] { Direction.N, Direction.E, Direction.S, Direction.W };
+          }
+        }
+
+        private void LoadMatrix(int[] arr)
+        {
+          this.ScoreMatrix = new SortedList<Direction, int>();
+          if (arr.Length == 9)
+          {
+            this.ScoreMatrix.Add(Direction.NW, arr[0]);
+            this.ScoreMatrix.Add(Direction.N, arr[1]);
+            this.ScoreMatrix.Add(Direction.NE, arr[2]);
+            this.ScoreMatrix.Add(Direction.W, arr[3]);
+            this.ScoreMatrix.Add(Direction.Center, arr[4]);
+            this.ScoreMatrix.Add(Direction.E, arr[5]);
+            this.ScoreMatrix.Add(Direction.SW, arr[6]);
+            this.ScoreMatrix.Add(Direction.S, arr[7]);
+            this.ScoreMatrix.Add(Direction.SE, arr[8]);
+          }
+          else
+          {
+            throw new Exception("Size not valid. Array should be a length of 9 to match matrix model");
+          }
+        }
+      }
+
 
       public class CrawlerMatrix
       {
@@ -334,56 +486,80 @@ namespace Font_to_GCode
         { Direction.SE, new Point(1, 1) } });
           }
         }
-
-
+        
         public Dictionary<Direction, CrawlerPoint> Matrix { get; set; }
-        private CrawlPointModel _model { get; set; }
-        private LastCrawlerPoint _last { get; set; }
+        public CrawlerPoint this[Direction dir] {
+          get
+          {
+            return this.Matrix[dir];
+          }
+          set
+          {
+            this.Matrix[dir] = value;
+          }
+        }
 
+        public override string ToString()
+        {
+          var outstr = new StringBuilder(this.Matrix[Direction.Center].Point.ToString() + "{");
+          foreach (KeyValuePair<Direction, CrawlerPoint> item in this.Matrix)
+          {
+            outstr.Append(item.Key.ToString() + ": " + item.Value.Brightness.ToString() + ", ");
+          }
+          outstr.Append("}");
+          return outstr.ToString();
+        }
         public CrawlerMatrix(Bitmap image, int x, int y)
         {
           this.Matrix = new Dictionary<Direction, CrawlerPoint>(9)
           {
-            {Direction.NW, null },
-            {Direction.N, null },
-            {Direction.NE, null },
-            {Direction.W, null },
-            {Direction.Center, null },
-            {Direction.E, null },
-            {Direction.SW, null },
-            {Direction.S, null },
-            {Direction.SE, null }
+            { Direction.NW, null },
+            { Direction.N, null },
+            { Direction.NE, null },
+            { Direction.W, null },
+            { Direction.Center, null },
+            { Direction.E, null },
+            { Direction.SW, null },
+            { Direction.S, null },
+            { Direction.SE, null }
           };
 
-          if (((x - 1) >= 0) && ((x + 1) < image.Width) && ((y - 1) >= 0) && ((y + 1) < image.Height))
+          for (int i = this.Matrix.Count - 1; i >= 0; i--)
           {
-            foreach (Direction dir in this.Matrix.Keys)
-            {
+            Direction dir = this.Matrix.Keys.ToArray()[i];
+            //if (((x + DirectionGrid[dir].X) >= 0) && ((x + DirectionGrid[dir].X) < image.Width) && ((y + DirectionGrid[dir].Y) >= 0) && ((y + DirectionGrid[dir].Y) < image.Height))
+            //{
               this.Matrix[dir] = new CrawlerPoint(image, x + DirectionGrid[dir].X, y + DirectionGrid[dir].Y);
-            }
+            //}
           }
           
         }
 
-        public Direction Move(double threshold)
-        {
-          // Update here;
-          double curAvg = this.Matrix[Direction.Center].Brightness;
-          if (this.Matrix[last] != null)
-            curAvg = (curAvg + this.Matrix[last].Brightness) / 2;
-
-          foreach (KeyValuePair<Direction,CrawlerPoint> item in this.Matrix)
-          {
-            
-          }
-          return Direction.N;
-        }
 
         public class CrawlerPoint
         {
           public Point Point { get; set; }
           public double Brightness { get; set; }
           private bool _IsNull { get; set; }
+
+          public override bool Equals(object obj)
+          {
+            if (obj is CrawlerPoint)
+            {
+              return ((CrawlerPoint)obj).Point.Equals(this.Point);
+            }else
+            {
+              throw new InvalidCastException("Can only compare CrawlerPoint to type CrawlerPoint");
+            }
+          }
+          public override int GetHashCode()
+          {
+            return this.Point.GetHashCode();
+          }
+          public override string ToString()
+          {
+            return "{X=" + this.Point.X.ToString() + ",Y=" + this.Point.Y.ToString() + ",B=" + this.Brightness.ToString() + "}";
+          }
 
           public CrawlerPoint(Bitmap image, int x, int y)
           {
@@ -411,98 +587,7 @@ namespace Font_to_GCode
             return this._IsNull;
           }
         }
-
-        public class CrawlPointModel {
-          public SortedList<Direction, int> ScoreMatrix { get; set; }
-
-          public CrawlPointModel(Direction last)
-          {
-            switch (last)
-            {
-              case Direction.NW:
-                this.LoadMatrix(new int[] { 0, 0, 10, 0, 0, 30, 10, 30, 20 });
-                break;
-              case Direction.N:
-                this.LoadMatrix(new int[] { 0, 0, 0, 0, 0, 0, 25, 50, 25 });
-                break;
-              case Direction.NE:
-                this.LoadMatrix(new int[] { 10, 0, 0, 30, 0, 0, 20, 30, 10 });
-                break;
-              case Direction.W:
-                this.LoadMatrix(new int[] { 0, 0, 25, 0, 0, 50, 0, 0, 25 });
-                break;
-              case Direction.E:
-                this.LoadMatrix(new int[] { 25, 0, 0, 50, 0, 0, 25, 0, 0 });
-                break;
-              case Direction.SW:
-                this.LoadMatrix(new int[] { 10, 30, 20, 0, 0, 30, 0, 0, 10 });
-                break;
-              case Direction.S:
-                this.LoadMatrix(new int[] { 25, 50, 25, 0, 0, 0, 0, 0, 0 });
-                break;
-              case Direction.SE:
-                this.LoadMatrix(new int[] { 20, 30, 10, 30, 0, 0, 10, 0, 0 });
-                break;
-              case Direction.Center:
-                this.LoadMatrix(new int[] { 12, 12, 12, 0, 12, 12, 12, 12, 12 });
-                break;
-              default:
-                this.LoadMatrix(new int[] { 12, 12, 12, 0, 12, 12, 12, 12, 12 });
-                break;
-            }
-          }
-
-          private void LoadMatrix(int[] arr)
-          {
-            this.ScoreMatrix = new SortedList<Direction, int>();
-            if (arr.Length == 9)
-            {
-              this.ScoreMatrix.Add(Direction.NW, arr[0]);
-              this.ScoreMatrix.Add(Direction.N, arr[1]);
-              this.ScoreMatrix.Add(Direction.NE, arr[2]);
-              this.ScoreMatrix.Add(Direction.W, arr[3]);
-              this.ScoreMatrix.Add(Direction.Center, arr[4]);
-              this.ScoreMatrix.Add(Direction.E, arr[5]);
-              this.ScoreMatrix.Add(Direction.SW, arr[6]);
-              this.ScoreMatrix.Add(Direction.S, arr[7]);
-              this.ScoreMatrix.Add(Direction.SE, arr[8]);
-            }else
-            {
-              throw new Exception("Size not valid. Array should be a length of 9 to match matrix model");
-            }
-          }
-        }
-
-        public struct LastCrawlerPoint
-        {
-          public CrawlerPoint Point { get; set; }
-          public Direction MotionDirection { get; set; }
-
-          public Direction ReverseDirection()
-          {
-            switch (this.MotionDirection)
-            {
-              case Direction.NW:
-                return Direction.SE;
-              case Direction.N:
-                return Direction.S;
-              case Direction.NE:
-                return Direction.SW;
-              case Direction.W:
-                return Direction.E;
-              case Direction.E:
-                return Direction.W;
-              case Direction.SW:
-                return Direction.NE;
-              case Direction.S:
-                return Direction.N;
-              case Direction.SE:
-                return Direction.NW;
-              default:
-                return Direction.Center;
-            }
-          }
-        }
+        
       }
 
     }

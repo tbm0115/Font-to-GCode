@@ -31,6 +31,8 @@
       this.menuStrip1 = new System.Windows.Forms.MenuStrip();
       this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuSave = new System.Windows.Forms.ToolStripMenuItem();
+      this.mnuSaveCharacterPath = new System.Windows.Forms.ToolStripMenuItem();
+      this.mnuSaveAllCharacterPaths = new System.Windows.Forms.ToolStripMenuItem();
       this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
       this.mnuQuit = new System.Windows.Forms.ToolStripMenuItem();
       this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -38,6 +40,10 @@
       this.mnuToolPicker = new System.Windows.Forms.ToolStripMenuItem();
       this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
       this.mnuCharacters = new System.Windows.Forms.ToolStripMenuItem();
+      this.setHeightinchToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+      this.txtActualHeight = new System.Windows.Forms.ToolStripTextBox();
+      this.setDepthinchToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+      this.txtActualDepth = new System.Windows.Forms.ToolStripTextBox();
       this.mnuFontFamilies = new System.Windows.Forms.ToolStripComboBox();
       this.statusStrip1 = new System.Windows.Forms.StatusStrip();
       this.statFontFile = new System.Windows.Forms.ToolStripStatusLabel();
@@ -46,6 +52,7 @@
       this.splitContainer1 = new System.Windows.Forms.SplitContainer();
       this.trvCharacters = new System.Windows.Forms.TreeView();
       this.picCharacter = new System.Windows.Forms.PictureBox();
+      this.mnuSaveInputText = new System.Windows.Forms.ToolStripMenuItem();
       this.menuStrip1.SuspendLayout();
       this.statusStrip1.SuspendLayout();
       ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -81,20 +88,38 @@
       // 
       // mnuSave
       // 
+      this.mnuSave.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mnuSaveCharacterPath,
+            this.mnuSaveAllCharacterPaths,
+            this.mnuSaveInputText});
       this.mnuSave.Name = "mnuSave";
-      this.mnuSave.Size = new System.Drawing.Size(179, 26);
+      this.mnuSave.Size = new System.Drawing.Size(181, 26);
       this.mnuSave.Text = "Save G-Code...";
+      // 
+      // mnuSaveCharacterPath
+      // 
+      this.mnuSaveCharacterPath.Name = "mnuSaveCharacterPath";
+      this.mnuSaveCharacterPath.Size = new System.Drawing.Size(199, 26);
+      this.mnuSaveCharacterPath.Text = "Current Character";
+      this.mnuSaveCharacterPath.Click += new System.EventHandler(this.mnuSaveCharacterPath_Click);
+      // 
+      // mnuSaveAllCharacterPaths
+      // 
+      this.mnuSaveAllCharacterPaths.Name = "mnuSaveAllCharacterPaths";
+      this.mnuSaveAllCharacterPaths.Size = new System.Drawing.Size(199, 26);
+      this.mnuSaveAllCharacterPaths.Text = "All Characters";
+      this.mnuSaveAllCharacterPaths.Click += new System.EventHandler(this.mnuSaveAllCharacterPaths_Click);
       // 
       // toolStripSeparator2
       // 
       this.toolStripSeparator2.Name = "toolStripSeparator2";
-      this.toolStripSeparator2.Size = new System.Drawing.Size(176, 6);
+      this.toolStripSeparator2.Size = new System.Drawing.Size(178, 6);
       // 
       // mnuQuit
       // 
       this.mnuQuit.Name = "mnuQuit";
       this.mnuQuit.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-      this.mnuQuit.Size = new System.Drawing.Size(179, 26);
+      this.mnuQuit.Size = new System.Drawing.Size(181, 26);
       this.mnuQuit.Text = "Quit";
       // 
       // toolsToolStripMenuItem
@@ -105,6 +130,7 @@
       this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
       this.toolsToolStripMenuItem.Size = new System.Drawing.Size(57, 28);
       this.toolsToolStripMenuItem.Text = "Tools";
+      this.toolsToolStripMenuItem.Visible = false;
       // 
       // mnuToolDefault
       // 
@@ -121,7 +147,9 @@
       // settingsToolStripMenuItem
       // 
       this.settingsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.mnuCharacters});
+            this.mnuCharacters,
+            this.setHeightinchToolStripMenuItem,
+            this.setDepthinchToolStripMenuItem});
       this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
       this.settingsToolStripMenuItem.Size = new System.Drawing.Size(74, 28);
       this.settingsToolStripMenuItem.Text = "Settings";
@@ -131,6 +159,36 @@
       this.mnuCharacters.Name = "mnuCharacters";
       this.mnuCharacters.Size = new System.Drawing.Size(222, 26);
       this.mnuCharacters.Text = "Configure Characters";
+      // 
+      // setHeightinchToolStripMenuItem
+      // 
+      this.setHeightinchToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.txtActualHeight});
+      this.setHeightinchToolStripMenuItem.Name = "setHeightinchToolStripMenuItem";
+      this.setHeightinchToolStripMenuItem.Size = new System.Drawing.Size(222, 26);
+      this.setHeightinchToolStripMenuItem.Text = "Set Height (inch)";
+      // 
+      // txtActualHeight
+      // 
+      this.txtActualHeight.Name = "txtActualHeight";
+      this.txtActualHeight.Size = new System.Drawing.Size(100, 27);
+      this.txtActualHeight.Text = "0.5";
+      this.txtActualHeight.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textbox_KeyPress);
+      // 
+      // setDepthinchToolStripMenuItem
+      // 
+      this.setDepthinchToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.txtActualDepth});
+      this.setDepthinchToolStripMenuItem.Name = "setDepthinchToolStripMenuItem";
+      this.setDepthinchToolStripMenuItem.Size = new System.Drawing.Size(222, 26);
+      this.setDepthinchToolStripMenuItem.Text = "Set Depth (inch)";
+      // 
+      // txtActualDepth
+      // 
+      this.txtActualDepth.Name = "txtActualDepth";
+      this.txtActualDepth.Size = new System.Drawing.Size(100, 27);
+      this.txtActualDepth.Text = "0.1";
+      this.txtActualDepth.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.textbox_KeyPress);
       // 
       // mnuFontFamilies
       // 
@@ -227,9 +285,16 @@
       this.picCharacter.Location = new System.Drawing.Point(5, 5);
       this.picCharacter.Name = "picCharacter";
       this.picCharacter.Size = new System.Drawing.Size(531, 362);
-      this.picCharacter.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+      this.picCharacter.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
       this.picCharacter.TabIndex = 0;
       this.picCharacter.TabStop = false;
+      // 
+      // mnuSaveInputText
+      // 
+      this.mnuSaveInputText.Name = "mnuSaveInputText";
+      this.mnuSaveInputText.Size = new System.Drawing.Size(199, 26);
+      this.mnuSaveInputText.Text = "Input Text";
+      this.mnuSaveInputText.Click += new System.EventHandler(this.mnuSaveInputText_Click);
       // 
       // main
       // 
@@ -276,6 +341,13 @@
     private System.Windows.Forms.ToolStripMenuItem mnuToolPicker;
     private System.Windows.Forms.ToolStripStatusLabel statPointCount;
     private System.Windows.Forms.ToolStripComboBox mnuFontFamilies;
+    private System.Windows.Forms.ToolStripMenuItem mnuSaveCharacterPath;
+    private System.Windows.Forms.ToolStripMenuItem mnuSaveAllCharacterPaths;
+    private System.Windows.Forms.ToolStripMenuItem setHeightinchToolStripMenuItem;
+    private System.Windows.Forms.ToolStripTextBox txtActualHeight;
+    private System.Windows.Forms.ToolStripMenuItem setDepthinchToolStripMenuItem;
+    private System.Windows.Forms.ToolStripTextBox txtActualDepth;
+    private System.Windows.Forms.ToolStripMenuItem mnuSaveInputText;
   }
 }
 
