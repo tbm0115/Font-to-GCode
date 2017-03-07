@@ -28,6 +28,7 @@
     /// </summary>
     private void InitializeComponent()
     {
+      System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Settings_Characters));
       this.label1 = new System.Windows.Forms.Label();
       this.txtNewCharacter = new System.Windows.Forms.TextBox();
       this.lstCharacters = new System.Windows.Forms.ListBox();
@@ -103,6 +104,7 @@
       this.Controls.Add(this.lstCharacters);
       this.Controls.Add(this.txtNewCharacter);
       this.Controls.Add(this.label1);
+      this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
       this.MaximizeBox = false;
       this.MinimizeBox = false;
       this.Name = "Settings_Characters";

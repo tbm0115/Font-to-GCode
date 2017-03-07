@@ -99,7 +99,7 @@ namespace Font_to_GCode
       double ratHeight = Convert.ToDouble(txtActualHeight.Text);
       double ratWidth = ((imgWidth * ratHeight) / imgHeight);
       var strOut = new StringBuilder();
-      strOut.AppendLine("(CHARACTER: " + cp.Character + ")");
+      strOut.AppendLine("(CHARACTER: " + cp.Character + " HEIGHT: " + ratHeight.ToString("0.0000") + " WIDTH: " + ratWidth.ToString("0.0000") + ")");
       strOut.AppendLine("G91 (BEGIN INCREMENTAL PATH)");
       Point[][] nomPaths = cp.GetPaths();
       Point[][] paths = cp.GetIncrementalPaths();
@@ -109,8 +109,8 @@ namespace Font_to_GCode
         for (int j = 0; j < paths[i].Count(); j++)
         {
           double x, y;
-          x = (paths[i][j].X / imgWidth) * ratWidth;//(paths[i][j].X * ratio);
-          y = (paths[i][j].Y / imgHeight) * ratHeight;//(paths[i][j].Y * ratio);
+          x = (paths[i][j].X / imgWidth) * ratWidth;
+          y = (paths[i][j].Y / imgHeight) * ratHeight;
           if (j == 0)
           {
             strOut.AppendLine("X" + x.ToString() + " Y" + y.ToString() + " (GO TO FIRST POINT)");
