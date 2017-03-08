@@ -334,7 +334,7 @@ namespace Font_to_GCode
         {
           last = pts.Length;
           pts = Clean_Dups(pts);
-          //pts = Clean_Thresh(pts, 0.002);
+          pts = Clean_Thresh(pts, 0.015);
           cur = pts.Length;
         } while (cur != last);
         //Console.WriteLine("Lengths Original=" + origin.ToString() + "\tNew=" + cur.ToString());
@@ -401,12 +401,15 @@ namespace Font_to_GCode
           }
           else
           {
-            if (cur.X > 0 && cur.Y > 0)
+            if (cur.X != 0 || cur.Y != 0)
             {
+              cur.X += pts[i].X;
+              cur.Y += pts[i].Y;
               nwpts.Add(cur);
               cur = new Point();
+            }else{
+              nwpts.Add(pts[i]);
             }
-            nwpts.Add(pts[i]);
           }
         }
         if (cur.X > 0 && cur.Y > 0)

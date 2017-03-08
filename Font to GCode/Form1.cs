@@ -51,7 +51,7 @@ namespace Font_to_GCode
         Font font = new Font(_fontFamilies[e.Index], ((ComboBox)sender).Font.Size);
         Brush brush = Brushes.Black;
         string text = _fontFamilies[e.Index].Name;
-
+        //e.Graphics.Clear(Color.White);
         e.Graphics.DrawString(text, font, brush, e.Bounds);
       }
       catch (Exception ex)
@@ -230,13 +230,29 @@ namespace Font_to_GCode
       Cursor = Cursors.WaitCursor;
       SaveFileDialog sv = (SaveFileDialog)sender;
       var strOut = new StringBuilder();
-      strOut.AppendLine("(RAW FORMAT " + mnuFontFamilies.SelectedItem.ToString() + " " + Properties.Settings.Default.FontSize + "em)");
+      strOut.AppendLine("O" + Properties.Settings.Default.GCodeProgram);
+      strOut.AppendLine("(MACRO: " + trvCharacters.SelectedNode.Text + " - " + mnuFontFamilies.SelectedItem.ToString() + " FONT " + Properties.Settings.Default.FontSize + "em)");
+      strOut.AppendLine();
       strOut.AppendLine("(SHORTEST DISTANCE: " + ((CharacterPath)trvCharacters.SelectedNode.Tag).EdgeDetector.GetShortestDistance().ToString() + ")");
-      strOut.AppendLine("(USAGE:)");
-      strOut.AppendLine("(COPY THIS DOCUMENT DIRECTLY INTO YOUR PROGRAM)");
+      strOut.AppendLine();
+      strOut.AppendLine("(-- USAGE --)");
+      strOut.AppendLine("( - USE G65 TO CALL THIS PROGRAM)");
+      strOut.AppendLine("(EXAMPLES - G65 P" + Properties.Settings.Default.GCodeProgram + " Z0.2 S1 (F 0.2 DEEP 1:1 SCALE))");
+      strOut.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " (F 0.1 DEEP 1:1 SCALE))");
       strOut.AppendLine();
       strOut.AppendLine("(DATE: " + DateTime.Now.ToString("yyyy-MM-dd hh-mm tt") + ")");
-      strOut.AppendLine("#1 = " + Convert.ToDouble(Properties.Settings.Default.GCodeDepth).ToString() + " (SET DEFAULT DEPTH)");
+      strOut.AppendLine();
+      strOut.AppendLine("(-- VARIABLE DEFINITIONS --)");
+      strOut.AppendLine("([S]#19 = SCALE PATTERN IN XY)");
+      strOut.AppendLine("([Z]#26 = DEPTH OF CUT)");
+      strOut.AppendLine();
+      strOut.AppendLine("IF[#19NE0]GOTO10 (SCALE PASSED IN MACRO CALL)");
+      strOut.AppendLine("#19 = 1 (SET DEFAULT SCALE)");
+      strOut.AppendLine("N10 (SKIPPED DEFAULT SCALE)");
+      strOut.AppendLine("IF[#26NE0]GOTO11 (DEPTH PASSED IN MACRO CALL)");
+      strOut.AppendLine("#26 = " + Convert.ToDouble(Properties.Settings.Default.GCodeDepth).ToString() + " (SET DEFAULT DEPTH)");
+      strOut.AppendLine("N11 (SKIPPED DEFAULT DEPTH)");
+      strOut.AppendLine();
       strOut.AppendLine(CharacterToGCode((CharacterPath)trvCharacters.SelectedNode.Tag));
       // Save file out
       System.IO.File.WriteAllText(sv.FileName, strOut.ToString());
@@ -274,10 +290,10 @@ namespace Font_to_GCode
       strHead.AppendLine("( - USE G65 TO CALL THIS PROGRAM)");
       strHead.AppendLine("( - PASS ARGUMENTS -SEE BELOW-, AT LEAST CHARACTER INDEX)");
       strHead.AppendLine("( - REFERENCE THE LIST BELOW FOR CHARACTER INDICES)");
-      strHead.AppendLine("(EXAMPLES - G65 P" + Properties.Settings.Default.GCodeProgram + " C70 S1 Z0.1 (F))");
-      strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C79 S1 Z0.1 (O))");
-      strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C78 S1 Z0.1 (N))");
-      strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C84 S1 Z0.1 (T))");
+      strHead.AppendLine("(EXAMPLES - G65 P" + Properties.Settings.Default.GCodeProgram + " C70 Z0.1 S1 (F 0.1 DEEP 1:1 SCALE))");
+      strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C79 Z0.2 S1 (O 0.2 DEEP 1:1 SCALE))");
+      strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C78 S1      (N 0.1 DEEP 1:1 SCALE))");
+      strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C84         (T 0.1 DEEP 1:1 SCALE))");
       strHead.AppendLine();
       strHead.AppendLine("(-- VARIABLE DEFINITIONS --)");
       strHead.AppendLine("([C]#3  = CHARACTER INDEX -SEE BELOW-)");
@@ -285,7 +301,7 @@ namespace Font_to_GCode
       strHead.AppendLine("([Z]#26 = DEPTH OF CUT)");
       strHead.AppendLine();
       strHead.AppendLine("IF[#19NE0]GOTO10 (SCALE PASSED IN MACRO CALL)");
-      strHead.AppendLine("#26 = 1 (SET DEFAULT SCALE)");
+      strHead.AppendLine("#19 = 1 (SET DEFAULT SCALE)");
       strHead.AppendLine("N10 (SKIPPED DEFAULT SCALE)");
       strHead.AppendLine("IF[#26NE0]GOTO11 (DEPTH PASSED IN MACRO CALL)");
       strHead.AppendLine("#26 = " + Convert.ToDouble(Properties.Settings.Default.GCodeDepth).ToString() + " (SET DEFAULT DEPTH)");
@@ -373,20 +389,17 @@ namespace Font_to_GCode
         strHead.AppendLine();
         strHead.AppendLine("(-- USAGE --)");
         strHead.AppendLine("( - USE G65 TO CALL THIS PROGRAM)");
-        strHead.AppendLine("( - PASS ARGUMENTS -SEE BELOW-, AT LEAST CHARACTER INDEX)");
-        strHead.AppendLine("( - REFERENCE THE LIST BELOW FOR CHARACTER INDICES)");
-        strHead.AppendLine("(EXAMPLES - G65 P" + Properties.Settings.Default.GCodeProgram + " C70 S1 Z0.1 (F))");
-        strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C79 S1 Z0.1 (O))");
-        strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C78 S1 Z0.1 (N))");
-        strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " C84 S1 Z0.1 (T))");
+        strHead.AppendLine("(EXAMPLES - G65 P" + Properties.Settings.Default.GCodeProgram + " Z0.1 S1 (" + input + " 0.1 DEEP 1:1 SCALE))");
+        strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " Z0.2 S1 (" + input + " 0.2 DEEP 1:1 SCALE))");
+        strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + " S1      (" + input + " 0.1 DEEP 1:1 SCALE))");
+        strHead.AppendLine("(           G65 P" + Properties.Settings.Default.GCodeProgram + "         (" + input + " 0.1 DEEP 1:1 SCALE))");
         strHead.AppendLine();
         strHead.AppendLine("(-- VARIABLE DEFINITIONS --)");
-        strHead.AppendLine("([C]#3  = CHARACTER INDEX -SEE BELOW-)");
         strHead.AppendLine("([S]#19 = SCALE PATTERN IN XY)");
         strHead.AppendLine("([Z]#26 = DEPTH OF CUT)");
         strHead.AppendLine();
         strHead.AppendLine("IF[#19NE0]GOTO10 (SCALE PASSED IN MACRO CALL)");
-        strHead.AppendLine("#26 = 1 (SET DEFAULT SCALE)");
+        strHead.AppendLine("#19 = 1 (SET DEFAULT SCALE)");
         strHead.AppendLine("N10 (SKIPPED DEFAULT SCALE)");
         strHead.AppendLine("IF[#26NE0]GOTO11 (DEPTH PASSED IN MACRO CALL)");
         strHead.AppendLine("#26 = " + Convert.ToDouble(Properties.Settings.Default.GCodeDepth).ToString() + " (SET DEFAULT DEPTH)");
