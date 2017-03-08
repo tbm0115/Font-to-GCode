@@ -9,10 +9,11 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Font_to_GCode</RootNamespace>
     <AssemblyName>Font to GCode</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <IsWebBootstrapper>false</IsWebBootstrapper>
+    <TargetFrameworkProfile />
     <PublishUrl>\\server\clientapps\In-House\Font To GCode\Publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Unc</InstallFrom>
@@ -27,7 +28,7 @@
     <PublisherName>Irongate Machine Inc</PublisherName>
     <WebPage>publish.htm</WebPage>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationRevision>15</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -97,6 +98,12 @@
     <Compile Include="Settings_Characters.Designer.cs">
       <DependentUpon>Settings_Characters.cs</DependentUpon>
     </Compile>
+    <Compile Include="Settings_GCode.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Settings_GCode.Designer.cs">
+      <DependentUpon>Settings_GCode.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
@@ -108,9 +115,13 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="Settings_Characters.resx">
       <DependentUpon>Settings_Characters.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Settings_GCode.resx">
+      <DependentUpon>Settings_GCode.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Font to GCode_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">

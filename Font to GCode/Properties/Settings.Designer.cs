@@ -77,12 +77,60 @@ namespace Font_to_GCode.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("120")]
-        public int FontSize {
+        public string FontSize {
             get {
-                return ((int)(this["FontSize"]));
+                return ((string)(this["FontSize"]));
             }
             set {
                 this["FontSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public string GCodeHeight {
+            get {
+                return ((string)(this["GCodeHeight"]));
+            }
+            set {
+                this["GCodeHeight"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.1")]
+        public string GCodeDepth {
+            get {
+                return ((string)(this["GCodeDepth"]));
+            }
+            set {
+                this["GCodeDepth"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("9500")]
+        public string GCodeProgram {
+            get {
+                return ((string)(this["GCodeProgram"]));
+            }
+            set {
+                this["GCodeProgram"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("G00 G17 G20 G40 G80 G90 G94")]
+        public string GCodeInit {
+            get {
+                return ((string)(this["GCodeInit"]));
+            }
+            set {
+                this["GCodeInit"] = value;
             }
         }
     }

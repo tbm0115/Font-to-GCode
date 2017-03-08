@@ -27,7 +27,8 @@ namespace Font_to_GCode
     public FontToPathModel(string fontFamily, string[] characterList)
     {
       this.FontFamily = fontFamily;
-      this.Font = new Font(FontFamily, Properties.Settings.Default.FontSize);
+      this.Font = new Font(FontFamily, Convert.ToInt32(Properties.Settings.Default.FontSize));
+      Console.WriteLine("Font Size: " + this.Font.Size.ToString());
       this.Characters = characterList;
       this._charLib = new List<CharacterPath>();
       foreach (string item in this.Characters)
@@ -115,7 +116,6 @@ namespace Font_to_GCode
         this.Image.Dispose();
       SizeF sz = GetImageSize();
       this.Image = new Bitmap((int)sz.Width, (int)sz.Height);
-      //this.Image = new Bitmap(Properties.Settings.Default.FontSize * 2, Properties.Settings.Default.FontSize * 2, PixelFormat.Format32bppPArgb);
       using (Graphics g = Graphics.FromImage(this.Image))
       {
         g.Clear(Color.White);
@@ -158,43 +158,6 @@ namespace Font_to_GCode
       }
       return ptPaths.ToArray();
     }
-    //public Bitmap Draw(bool includePoints = false)
-    //{
-    //  if (this.Image != null)
-    //    this.Image.Dispose();
-    //  this.Image = new Bitmap(Properties.Settings.Default.FontSize * 2, Properties.Settings.Default.FontSize * 2, PixelFormat.Format32bppPArgb);
-    //  using (Graphics g = Graphics.FromImage(this.Image))
-    //  {
-    //    g.Clear(Color.White);
-    //    g.DrawString(Character, this.Font, Brushes.Black, 0, 0);
-    //    if (includePoints && this._imagePoints != null && this._imagePoints.Count > 0)
-    //    {
-    //      ImagePoint cur = this._imagePoints[0];
-    //      cur.DrawPoint(g, this.Image.Size);
-    //      if (this._imagePoints.Count > 1)
-    //      {
-    //        for (int i = 1; i < this._imagePoints.Count; i++)
-    //        {
-    //          ImagePoint thisPt = this._imagePoints[i];
-    //          thisPt.DrawPoint(g, this.Image.Size);
-    //          DrawLine(cur, thisPt, g, this.Image.Size);
-    //          cur = thisPt;
-    //        }
-    //      }
-    //    }
-    //  }
-    //  return this.Image;
-    //}
-
-    //public void DrawLine(ImagePoint pt1, ImagePoint pt2, Graphics g, Size imageSize)
-    //{
-    //  var x1 = (int)(pt1.PercentX * imageSize.Width);
-    //  var y1 = (int)(pt1.PercentY * imageSize.Height);
-    //  var x2 = (int)(pt2.PercentX * imageSize.Width);
-    //  var y2 = (int)(pt2.PercentY * imageSize.Height);
-    //  g.DrawLine(new Pen(Color.YellowGreen, 2), new Point(x1, y1), new Point(x2, y2));
-    //}
-
   }
 
   public class AutoEdge
@@ -257,6 +220,32 @@ namespace Font_to_GCode
       return false;
     }
     
+    public double GetShortestDistance()
+    {
+      double val = double.MaxValue;
+      foreach (Crawler item in EdgeCrawler)
+      {
+        Point[] cur = item.GetPointPath();
+        foreach (Crawler other in EdgeCrawler)
+        {
+          if (!item.Equals(other))
+          {
+            Point[] nxt = other.GetPointPath();
+            foreach (Point cpt in cur)
+            {
+              foreach (Point opt in nxt)
+              {
+                double dist = Math.Sqrt(Math.Pow(opt.X - cpt.X, 2) + Math.Pow(opt.Y - cpt.Y, 2));
+                if (dist < val)
+                  val = dist;
+              }
+            }
+          }
+        }
+      }
+      return val;
+    }
+
     public class Crawler
     {
       private Bitmap _bmp { get; set; }
@@ -338,32 +327,94 @@ namespace Font_to_GCode
       }
       private Point[] CleanPointPath_Incremental(Point[] pts)
       {
-        List<Point> nwpts = new List<Point>();
-        Point last;
-        last = pts[0];
-        int conX = last.X;
-        int conY = last.Y;
-        for (int i = 1; i < pts.Length; i++)
+        int origin = pts.Length;
+        int last = pts.Length;
+        int cur = 0;
+        do
         {
-          if (pts[i].Equals(last))
+          last = pts.Length;
+          pts = Clean_Dups(pts);
+          //pts = Clean_Thresh(pts, 0.002);
+          cur = pts.Length;
+        } while (cur != last);
+        //Console.WriteLine("Lengths Original=" + origin.ToString() + "\tNew=" + cur.ToString());
+        return  pts;
+      }
+      private Point[] Clean_Dups(Point[] pts)
+      {
+        List<Point> nwpts = new List<Point>();
+        Point cur = new Point();//last
+        // Clean by concatenating duplicate entries (straight lines);
+        //last = pts[0];
+        int conX = 0;//last.X;
+        int conY = 0;//last.Y;
+        for (int i = 0; i < pts.Length; i++)
+        {
+          if (i == 0)
+          {
+            cur = pts[i];
+            conX = cur.X;
+            conY = cur.Y;
+            continue;
+          }
+          if (pts[i].Equals(cur))// last))
           {
             conX += pts[i].X;
             conY += pts[i].Y;
-          }else
+          }
+          else
           {
-            last.X = conX;
-            last.Y = conY;
-            nwpts.Add(last);
-            last = pts[i];
-            conX = last.X;
-            conY = last.Y;
+            cur.X = conX;
+            cur.Y = conY;
+            nwpts.Add(cur);
+            cur = pts[i];
+            conX = cur.X;
+            conY = cur.Y;
           }
         }
-        last.X = conX;
-        last.Y = conY;
-        nwpts.Add(last);
+        cur.X = conX;
+        cur.Y = conY;
+        nwpts.Add(cur);
+
         return nwpts.ToArray();
       }
+      private Point[] Clean_Thresh(Point[] pts, double inchThreshold)
+      {
+        List<Point> nwpts = new List<Point>();
+        Point cur = new Point();
+        // Clean by concatenating duplicate entries (straight lines);
+        //int conX = 0;
+        //int conY = 0;
+        double ratHeight = Convert.ToDouble(Properties.Settings.Default.GCodeHeight);
+        double ratWidth = (this._bmp.Width * ratHeight) / this._bmp.Height;
+        double imgHeight = this._bmp.Height;
+        double imgWidth = this._bmp.Width;
+        for (int i = 0; i < pts.Length; i++)
+        {
+          double inx = (pts[i].X / imgWidth) * ratWidth;
+          double iny = (pts[i].Y / imgHeight) * ratHeight;
+          //Console.WriteLine("X=" + inx.ToString() + "\tY=" + iny.ToString() + "\tThreshold=" + inchThreshold.ToString());
+          if ((inx == 0 && iny < inchThreshold) && (inx == 0 && iny > -inchThreshold) || (inx < inchThreshold && iny == 0) && (inx > -inchThreshold && iny == 0))
+          {
+            cur.X += pts[i].X;
+            cur.Y += pts[i].Y;
+          }
+          else
+          {
+            if (cur.X > 0 && cur.Y > 0)
+            {
+              nwpts.Add(cur);
+              cur = new Point();
+            }
+            nwpts.Add(pts[i]);
+          }
+        }
+        if (cur.X > 0 && cur.Y > 0)
+          nwpts.Add(cur);
+
+        return nwpts.ToArray();
+      }
+
 
       public class CrawlPointModel
       {
