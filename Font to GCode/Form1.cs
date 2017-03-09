@@ -141,6 +141,7 @@ namespace Font_to_GCode
       var strOut = new StringBuilder();
       strOut.AppendLine("(CHARACTER: " + cp.Character + " HEIGHT: " + ratHeight.ToString("0.0000") + " WIDTH: " + ratWidth.ToString("0.0000") + ")");
       strOut.AppendLine("G91 (BEGIN INCREMENTAL PATH)");
+      strOut.AppendLine("G51 X" + (((imgWidth/2) / imgWidth) * ratWidth).ToString("0.00000") + " Y" + (((imgHeight/2) / imgHeight) * ratHeight).ToString("0.00000") + " P#19 (SCALE)");
       Point[][] nomPaths = cp.GetPaths();
       Point[][] paths = cp.GetIncrementalPaths();
       int tot = 0;
@@ -155,17 +156,18 @@ namespace Font_to_GCode
           y = (paths[i][j].Y / imgHeight) * ratHeight;
           if (j == 0)
           {
-            strOut.AppendLine("G00 X" + x.ToString() + " Y" + y.ToString() + " (GO TO FIRST POINT)");
+            strOut.AppendLine("G00 X" + x.ToString("0.00000") + " Y" + y.ToString("0.00000") + " (GO TO FIRST POINT)");
             strOut.AppendLine("G01 Z-#26 (INCREMENT DOWN TO CUT)");
           }else{
-            strOut.AppendLine("X" + x.ToString() + " Y" + y.ToString());
+            strOut.AppendLine("X" + x.ToString("0.00000") + " Y" + y.ToString("0.00000"));
           }
         }
         strOut.AppendLine("G00 Z#26 (INCREMENT OUT)");
-        strOut.AppendLine("X" + (((0 - nomPaths[i][nomPaths[i].Count() - 1].X) / imgWidth) * ratWidth).ToString() + " Y-" + (((imgHeight - nomPaths[i][nomPaths[i].Count() - 1].Y) / imgHeight) * ratHeight).ToString() + "(MOVE TO START)");
+        strOut.AppendLine("X" + (((0 - nomPaths[i][nomPaths[i].Count() - 1].X) / imgWidth) * ratWidth).ToString("0.00000") + " Y-" + (((imgHeight - nomPaths[i][nomPaths[i].Count() - 1].Y) / imgHeight) * ratHeight).ToString("0.00000") + "(MOVE TO START)");
       }
       //Console.WriteLine("Finished Length=" + tot.ToString());
-      strOut.AppendLine("X" + (ratWidth).ToString() + "(MOVE TO NEXT CORNER)");
+      strOut.AppendLine("X" + (ratWidth).ToString("0.00000") + "(MOVE TO NEXT CORNER)");
+      strOut.AppendLine("G50 (CANCEL SCALE)");
       strOut.AppendLine("G90 (BACK TO ABSOLUTE FOR SAFETY)");
       return strOut.ToString();
     }
